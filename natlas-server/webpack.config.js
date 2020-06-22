@@ -5,6 +5,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const assetRootPath = path.resolve(__dirname, 'app', 'static');
 
 const config = {
+	devtool: 'eval-source-map',
 	entry: path.resolve(assetRootPath, 'natlas.js'),
 	module: {
 		rules: [
@@ -15,7 +16,7 @@ const config = {
 			},
 			{
 				exclude: /node_modules/,
-				test: /\.ts$/,
+				test: /\.tsx?$/,
 				use: 'ts-loader'
 			},
 			{
@@ -46,12 +47,13 @@ const config = {
 		})
 	],
 	resolve: {
-		extensions: ['.ts', '.js'],
+		extensions: ['.ts', '.tsx', '.js'],
 		modules: [
 			'static',
 			'node_modules'
 		]
-	}
+	},
+	watch: true
 };
 
 module.exports = config;

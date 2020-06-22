@@ -8,7 +8,7 @@ interface GithubReleases {
 }
 
 class UpdateCheckResult {
-	constructor(private isNewerAvailable: boolean, private downloadUrl: string, private version: string) {
+	constructor(isNewerAvailable: boolean, downloadUrl: string, version: string) {
 	}
 }
 

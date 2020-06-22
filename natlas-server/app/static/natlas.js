@@ -5,6 +5,7 @@ import { isNewerVersionAvailable } from './util/version-check';
 import { initializeStatusUpdates } from './util/system-status';
 import { registerTagModalEvents } from './controls/natlas-tagging';
 import { registerAgentEvents } from './controls/user-profile';
+import './features/search/PageRoot';
 import 'natlas.scss';
 import 'bootstrap';
 
