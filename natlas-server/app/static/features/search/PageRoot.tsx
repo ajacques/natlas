@@ -6,15 +6,24 @@ import SearchBox from './SearchBox';
 
 import {
 	RefinementListFilter,
-	SearchkitComponent, SearchkitManager
+	SearchkitComponent,
+	SearchkitProvider,
+	SearchkitComponentProps,
+	SearchkitManager
 } from "searchkit";
 
-const sk = new SearchkitManager("http://localhost:5000/elasticsearch")
+interface Props extends SearchkitComponentProps {
 
-class MyComponent extends SearchkitComponent {
+}
+
+const sk = new SearchkitManager("http://localhost:5000/elasticsearch");
+
+class MyComponent extends SearchkitComponent<Props, never> {
 	render() {
 		return (
-			<RefinementListFilter field="test"  title={}/>
+			<SearchkitProvider searchkit={sk}>
+				<RefinementListFilter id="test" field="test" title="Service" />
+			</SearchkitProvider>
 		);
 	}
 }

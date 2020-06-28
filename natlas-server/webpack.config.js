@@ -53,7 +53,14 @@ const config = {
 			'node_modules'
 		]
 	},
-	watch: true
+	watch: true,
+	watchOptions: {
+		aggregateTimeout: 200,
+		ignored: [
+			'node_modules/**'
+		],
+		poll: 1000
+	}
 };
 
 module.exports = config;
