@@ -8,8 +8,8 @@
         "arrow-parens": true,
         "indent": [
             true,
-            "tabs",
-            2
+            "spaces",
+            4
         ],
         "interface-name": false,
         "no-console": {
