@@ -1,15 +1,15 @@
 import { createStore, combineReducers } from 'redux';
 
 function searchReducer(state: object = null) {
-	return state;
+    return state;
 }
 
 export type RootState = {
-	search: any
+    search: any
 };
 
 const rootReducer = combineReducers({
-	search: searchReducer
+    search: searchReducer
 });
 // @ts-ignore
 const devTools = window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__();
