@@ -43,11 +43,12 @@ services:
       - SERVER_NAME=localhost:5000
       - PREFERRED_URL_SCHEME=http
       - SECRET_KEY=jasonkeepsbreakingmyshit
+      - AGENT_AUTHENTICATION=False
     volumes:
       - ns-data:/data
       - ./natlas-server:/opt/natlas/natlas-server
       - html_assets:/opt/natlas/natlas-server/static/dist
-    links:
+    depends_on:
       - elastic
 
   natlas-agent:
@@ -63,7 +64,7 @@ services:
       - seccomp=./natlas-agent/chrome.json
     volumes:
       - ./natlas-agent:/opt/natlas/natlas-agent
-    links:
+    depends_on:
       - natlas-server
 
   kibana:
@@ -73,6 +74,8 @@ services:
       SERVER_HOST: 0.0.0.0
     ports:
       - 5601
+    depends_on:
+      - elastic
     networks:
       - backend
 
