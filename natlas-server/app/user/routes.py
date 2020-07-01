@@ -1,5 +1,5 @@
-from flask import render_template, redirect, url_for, flash, request
-from flask_login import current_user
+from flask import render_template, redirect, flash, url_for
+from flask_login import current_user, login_required
 from app import db
 from app.user import bp
 from app.user.forms import (
@@ -9,16 +9,11 @@ from app.user.forms import (
     AgentNameForm,
 )
 from app.models import User, Agent
-from app.auth.wrappers import is_authenticated
 
 
 @bp.route("/", methods=["GET", "POST"])
-@is_authenticated
+@login_required
 def profile():
-    # Handle this case because is_authenticated only applies when LOGIN_REQUIRED is true
-    if current_user.is_anonymous:
-        flash(f"You must be a user to access {request.path}", "warning")
-        return redirect(url_for("main.index"))
     myagents = current_user.agents
     changePasswordForm = ChangePasswordForm(prefix="change-password")
     displaySettingsForm = DisplaySettingsForm(
@@ -74,8 +69,8 @@ def profile():
 
 
 @bp.route("/agent/<string:agent_id>/newToken", methods=["POST"])
-@is_authenticated
-def generateNewToken(agent_id):
+@login_required
+def generate_new_token(agent_id):
     generateTokenForm = GenerateTokenForm()
 
     if generateTokenForm.validate_on_submit():
@@ -85,12 +80,12 @@ def generateNewToken(agent_id):
         flash(f"Agent {myAgent.agentid} has a new key of: {myAgent.token}", "success")
     else:
         flash("Couldn't generate new token", "danger")
-    return redirect(request.referrer)
+    return redirect(url_for("user.profile"))
 
 
 @bp.route("/agent/<string:agent_id>/newName", methods=["POST"])
-@is_authenticated
-def changeAgentName(agent_id):
+@login_required
+def change_agent_name(agent_id):
     agentNameForm = AgentNameForm()
 
     if agentNameForm.validate_on_submit():
@@ -103,12 +98,12 @@ def changeAgentName(agent_id):
         )
     else:
         flash("Couldn't change agent name", "danger")
-    return redirect(request.referrer)
+    return redirect(url_for("user.profile"))
 
 
 @bp.route("/agent/newAgent", methods=["POST"])
-@is_authenticated
-def newAgent():
+@login_required
+def new_agent():
     newAgentForm = AgentNameForm()
 
     if newAgentForm.validate_on_submit():
@@ -126,4 +121,4 @@ def newAgent():
         )
     else:
         flash("Couldn't create new agent", "danger")
-    return redirect(request.referrer)
+    return redirect(url_for("user.profile"))

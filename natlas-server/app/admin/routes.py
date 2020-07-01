@@ -8,13 +8,12 @@ from flask import (
     flash,
     Response,
     abort,
-    request,
 )
-from flask_login import current_user
+from flask_login import current_user, login_required
 
 from app import db
 from app.admin import bp
-from app.admin import forms
+from app.admin import forms, redirects
 from app.models import (
     User,
     ScopeItem,
@@ -26,11 +25,11 @@ from app.models import (
     ScopeLog,
     UserInvitation,
 )
-from app.auth.wrappers import is_authenticated, is_admin
+from app.auth.wrappers import is_admin
 
 
 @bp.route("/", methods=["GET", "POST"])
-@is_authenticated
+@login_required
 @is_admin
 def admin():
     configForm = forms.ConfigForm()
@@ -50,7 +49,7 @@ def admin():
 
 
 @bp.route("/users", methods=["GET", "POST"])
-@is_authenticated
+@login_required
 @is_admin
 def users():
     users = User.query.all()
@@ -71,9 +70,9 @@ def users():
 
 
 @bp.route("/users/<int:id>/delete", methods=["POST"])
-@is_authenticated
+@login_required
 @is_admin
-def deleteUser(id):
+def delete_user(id):
     delForm = forms.UserDeleteForm()
     if delForm.validate_on_submit():
         if current_user.id == id:
@@ -90,24 +89,18 @@ def deleteUser(id):
 
 
 @bp.route("/users/<int:id>/toggle", methods=["POST"])
-@is_authenticated
+@login_required
 @is_admin
-def toggleUser(id):
+def toggle_user(id):
     editForm = forms.UserEditForm()
     if editForm.validate_on_submit():
         user = User.query.filter_by(id=id).first()
-        if user.is_admin:
-            admins = User.query.filter_by(is_admin=True).all()
-            if len(admins) == 1:
-                flash("Can't delete the last admin!", "danger")
-                return redirect(url_for("admin.users"))
-            user.is_admin = False
-            db.session.commit()
-            flash("User demoted!", "success")
-        else:
-            user.is_admin = True
-            db.session.commit()
-            flash("User promoted!", "success")
+        if user.id == current_user.id:
+            flash("Can't demote yourself!", "danger")
+            return redirect(url_for("admin.users"))
+        user.is_admin = not user.is_admin
+        db.session.commit()
+        flash("User status toggled!", "success")
     else:
         flash("Form couldn't validate!", "danger")
 
@@ -115,7 +108,7 @@ def toggleUser(id):
 
 
 @bp.route("/scope", methods=["GET", "POST"])
-@is_authenticated
+@login_required
 @is_admin
 def scope():
     scope = ScopeItem.getScope()
@@ -159,7 +152,7 @@ def scope():
 
 
 @bp.route("/blacklist", methods=["GET", "POST"])
-@is_authenticated
+@login_required
 @is_admin
 def blacklist():
     scope = ScopeItem.getBlacklist()
@@ -193,7 +186,7 @@ def blacklist():
 
 
 @bp.route("/import/<string:scopetype>", methods=["POST"])
-@is_authenticated
+@login_required
 @is_admin
 def import_scope(scopetype=""):
     if scopetype == "blacklist":
@@ -225,7 +218,7 @@ def import_scope(scopetype=""):
 
 
 @bp.route("/export/<string:scopetype>", methods=["GET"])
-@is_authenticated
+@login_required
 @is_admin
 def export_scope(scopetype=""):
     if scopetype == "blacklist":
@@ -240,10 +233,12 @@ def export_scope(scopetype=""):
     )
 
 
-@bp.route("/scope/<int:id>/delete", methods=["POST"])
-@is_authenticated
+@bp.route("/<string:scopetype>/<int:id>/delete", methods=["POST"])
+@login_required
 @is_admin
-def deleteScopeItem(id):
+def delete_scope(scopetype, id):
+    if scopetype not in ["scope", "blacklist"]:
+        abort(404)
     delForm = forms.ScopeDeleteForm()
     if delForm.validate_on_submit():
         item = ScopeItem.query.filter_by(id=id).first()
@@ -255,33 +250,33 @@ def deleteScopeItem(id):
         flash(f"{item.target} deleted!", "success")
     else:
         flash("Form couldn't validate!", "danger")
-    return redirect(request.referrer)
+    return redirects.get_scope_redirect(scopetype)
 
 
-@bp.route("/scope/<int:id>/toggle", methods=["POST"])
-@is_authenticated
+@bp.route("/<string:scopetype>/<int:id>/toggle", methods=["POST"])
+@login_required
 @is_admin
-def toggleScopeItem(id):
+def toggle_scope(scopetype, id):
+    if scopetype not in ["scope", "blacklist"]:
+        abort(404)
     toggleForm = forms.ScopeToggleForm()
     if toggleForm.validate_on_submit():
         item = ScopeItem.query.filter_by(id=id).first()
-        if item.blacklist:
-            item.blacklist = False
-            flash(f"{item.target} removed from blacklist!", "success")
-        else:
-            item.blacklist = True
-            flash(f"{item.target} blacklisted!", "success")
+        item.blacklist = not item.blacklist
+        flash(f"Toggled scope status for {item.target}!", "success")
         db.session.commit()
         current_app.ScopeManager.update()
     else:
         flash("Form couldn't validate!", "danger")
-    return redirect(request.referrer)
+    return redirects.get_scope_redirect(scopetype)
 
 
-@bp.route("/scope/<int:id>/tag", methods=["POST"])
-@is_authenticated
+@bp.route("/<string:scopetype>/<int:id>/tag", methods=["POST"])
+@login_required
 @is_admin
-def tagScopeItem(id):
+def tag_scope(scopetype, id):
+    if scopetype not in ["scope", "blacklist"]:
+        abort(404)
     addTagForm = forms.TagScopeForm()
     addTagForm.tagname.choices = [(row.name, row.name) for row in Tag.query.all()]
     if addTagForm.validate_on_submit():
@@ -292,13 +287,15 @@ def tagScopeItem(id):
         flash(f'Tag "{mytag.name}" added to {scope.target}', "success")
     else:
         flash("Form couldn't validate!", "danger")
-    return redirect(request.referrer)
+    return redirects.get_scope_redirect(scopetype)
 
 
-@bp.route("/scope/<int:id>/untag", methods=["POST"])
-@is_authenticated
+@bp.route("/<string:scopetype>/<int:id>/untag", methods=["POST"])
+@login_required
 @is_admin
-def untagScopeItem(id):
+def untag_scope(scopetype, id):
+    if scopetype not in ["scope", "blacklist"]:
+        abort(404)
     delTagForm = forms.TagScopeForm()
     scope = ScopeItem.query.get(id)
     delTagForm.tagname.choices = [(row.name, row.name) for row in scope.tags.all()]
@@ -309,11 +306,11 @@ def untagScopeItem(id):
         flash(f'Tag "{mytag.name}" removed from {scope.target}', "success")
     else:
         flash("Form couldn't validate!", "danger")
-    return redirect(request.referrer)
+    return redirects.get_scope_redirect(scopetype)
 
 
 @bp.route("/services", methods=["GET", "POST"])
-@is_authenticated
+@login_required
 @is_admin
 def services():
     uploadForm = forms.ServicesUploadForm(prefix="upload-services")
@@ -379,18 +376,18 @@ def services():
 
 
 @bp.route("/services/export", methods=["GET"])
-@is_authenticated
+@login_required
 @is_admin
-def exportServices():
+def export_services():
     return Response(
         str(current_app.current_services["services"]), mimetype="text/plain"
     )
 
 
 @bp.route("/agents", methods=["GET", "POST"])
-@is_authenticated
+@login_required
 @is_admin
-def agentConfig():
+def agent_config():
     agentConfig = AgentConfig.query.get(1)
     # pass the model to the form to populate
     agentForm = forms.AgentConfigForm(obj=agentConfig)
@@ -413,9 +410,9 @@ def agentConfig():
 
 
 @bp.route("/agents/script/add", methods=["POST"])
-@is_authenticated
+@login_required
 @is_admin
-def addScript():
+def add_script():
     addScriptForm = forms.AddScriptForm(prefix="add-script")
 
     if addScriptForm.validate_on_submit():
@@ -430,13 +427,13 @@ def addScript():
     else:
         flash(f"{addScriptForm.scriptName.data} couldn't be added to scripts", "danger")
 
-    return redirect(request.referrer)
+    return redirect(url_for("admin.agent_config"))
 
 
 @bp.route("/agents/script/<string:name>/delete", methods=["POST"])
-@is_authenticated
+@login_required
 @is_admin
-def deleteScript(name):
+def delete_script(name):
     deleteForm = forms.DeleteForm()
 
     if deleteForm.validate_on_submit():
@@ -451,40 +448,34 @@ def deleteScript(name):
             flash(f"{name} successfully deleted.", "success")
         else:
             flash(f"{name} doesn't exist", "danger")
-        return redirect(request.referrer)
+        return redirect(url_for("admin.agent_config"))
 
 
 @bp.route("/scans/delete/<scan_id>", methods=["POST"])
-@is_authenticated
+@login_required
 @is_admin
-def deleteScan(scan_id):
+def delete_scan(scan_id):
     delForm = forms.DeleteForm()
+    redirectLoc = url_for("main.browse")
 
     if delForm.validate_on_submit():
         deleted = current_app.elastic.delete_scan(scan_id)
-        if deleted in [1, 2]:
-            flash(f"Successfully deleted scan {scan_id}.", "success")
-            if request.referrer:
-                if scan_id in request.referrer:
-                    redirectLoc = request.referrer.rsplit(scan_id)[0]
-                else:
-                    redirectLoc = request.referrer
-            else:
-                redirectLoc = url_for("main.browse")
-            return redirect(redirectLoc)
+        if deleted not in [1, 2]:
+            flash(f"Couldn't delete scan {scan_id}", "danger")
         else:
-            flash(f"Could not delete scan {scan_id}.", "danger")
-            return redirect(request.referrer or url_for("main.browse"))
+            flash(f"Successfully deleted scan {scan_id}.", "success")
     else:
         flash("Couldn't validate form!")
-        return redirect(request.referrer)
+
+    return redirect(redirectLoc)
 
 
 @bp.route("/hosts/delete/<ip>", methods=["POST"])
-@is_authenticated
+@login_required
 @is_admin
-def deleteHost(ip):
+def delete_host(ip):
     delForm = forms.DeleteForm()
+    redirectLoc = url_for("main.browse")
 
     if delForm.validate_on_submit():
         deleted = current_app.elastic.delete_host(ip)
@@ -493,16 +484,16 @@ def deleteHost(ip):
                 f"Successfully deleted {deleted - 1 if deleted > 1 else deleted} scans for {ip}",
                 "success",
             )
-            return redirect(url_for("main.browse"))
+            return redirect(redirectLoc)
         else:
             flash(f"Couldn't delete host: {ip}", "danger")
     else:
         flash("Couldn't validate form!")
-        return redirect(request.referrer)
+        return redirect(redirectLoc)
 
 
 @bp.route("/tags", methods=["GET", "POST"])
-@is_authenticated
+@login_required
 @is_admin
 def tags():
     tags = Tag.query.all()
@@ -519,7 +510,7 @@ def tags():
 
 
 @bp.route("/logs", methods=["GET"])
-@is_authenticated
+@login_required
 @is_admin
 def logs():
     scope_logs = ScopeLog.query.order_by(ScopeLog.created_at.desc()).all()

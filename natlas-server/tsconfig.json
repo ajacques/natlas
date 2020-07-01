@@ -1,16 +1,16 @@
 {
     "compilerOptions": {
         "allowJs": true,
-		"jsx": "react",
-		"lib": [
-			"es2017",
-			"dom"
-		],
+        "jsx": "react",
+        "lib": [
+            "es2017",
+            "dom"
+        ],
         "module": "es6",
-        "moduleResolution": "node",
+        "moduleResolution": "Node",
         "noImplicitAny": true,
         "outDir": "./dist/",
-		"sourceMap": true,
+        "sourceMap": true,
         "target": "es5",
         "types": [
             "jquery"
