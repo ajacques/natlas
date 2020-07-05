@@ -36,6 +36,10 @@
     "ip": {
       "type": "ip"
     },
+    "hostname": {
+      "type": "text",
+      "analyzer": "domain_name_analyzer"
+    },
     "scan_id": {
       "type": "keyword"
     },
@@ -191,22 +195,11 @@
             "pubkey": {
               "properties": {
                 "bits": {
-                  "type": "integer",
-                  "fields": {
-                    "keyword": {
-                      "type": "keyword",
-                      "ignore_above": 256
-                    }
+                  "type": "integer"
                   }
                 },
                 "type": {
-                  "type": "text",
-                  "fields": {
-                    "keyword": {
-                      "type": "keyword",
-                      "ignore_above": 256
-                    }
-                  }
+                  "type": "keyword"
                 }
               }
             },
@@ -220,13 +213,7 @@
               }
             },
             "sig_alg": {
-              "type": "text",
-              "fields": {
-                "keyword": {
-                  "type": "keyword",
-                  "ignore_above": 256
-                }
-              }
+              "type": "keyword"
             },
             "subject": {
               "properties": {

@@ -7,7 +7,7 @@ const assetRootPath = path.resolve(__dirname, 'app', 'static');
 const config = (env, argv) => {
     const isDev = argv.mode === 'development';
     return {
-        devtool: isDev ? 'eval-source-map' : 'source-map',
+        devtool: isDev ? 'cheap-source-map' : 'source-map',
         entry: path.resolve(assetRootPath, 'natlas.js'),
         module: {
             rules: [
@@ -19,7 +19,13 @@ const config = (env, argv) => {
                 {
                     exclude: /node_modules/,
                     test: /\.tsx?$/,
-                    use: 'ts-loader'
+                    use: {
+                        loader: 'ts-loader',
+                        options: {
+                            experimentalWatchApi: true,
+                            transpileOnly: true
+                        }
+                    }
                 },
                 {
                     test: /\.(sass|scss|css)$/,
@@ -49,7 +55,7 @@ const config = (env, argv) => {
             })
         ],
         resolve: {
-            extensions: ['.ts', '.js'],
+            extensions: ['.tsx', '.ts', '.js'],
             modules: [
                 'static',
                 'node_modules'

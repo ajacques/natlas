@@ -8,6 +8,8 @@ from flask import (
     send_from_directory,
     jsonify,
 )
+from app import csrf
+
 from app.main import bp
 from app.main.pagination import build_pagination_urls, results_offset
 from app.auth.wrappers import is_authenticated
@@ -61,6 +63,14 @@ def browse():
         next_url=next_url,
         prev_url=prev_url,
     )
+
+
+@bp.route("/es_search/_search", methods=["POST"])
+@is_authenticated
+@csrf.exempt
+def es_search():
+    json = request.get_json()
+    return current_app.elastic.client.execute_search(index="nmap", body=json)
 
 
 @bp.route("/search")

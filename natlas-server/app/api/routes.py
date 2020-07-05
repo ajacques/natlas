@@ -98,7 +98,6 @@ def submit():
     status_code = None
     response_body = None
     data = request.get_json()
-    newhost = {}
     newhost = json.loads(data)
     newhost["ctime"] = dt.now(tz.utc)
     if newhost["scan_reason"] == "requested":
