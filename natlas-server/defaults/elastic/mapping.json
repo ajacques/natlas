@@ -196,7 +196,6 @@
               "properties": {
                 "bits": {
                   "type": "integer"
-                  }
                 },
                 "type": {
                   "type": "keyword"

@@ -77,14 +77,20 @@ class HitItem extends React.PureComponent<HitItemProps> {
                     <div className="port-service">{port.service.name}</div>
                 </div>
                 <div className="col-xs-12 col-sm-10 port-details">
-                    <h5>{port.banner}</h5>
-                    <div className="row">
-                        <div className="col">
-                            <p><small className="text-muted">product: OpenSSH version: 7.6p1 Ubuntu 4ubuntu0.3 extrainfo: Ubuntu Linux; protocol 2.0 ostype: Linux</small></p>
-                        </div>
-                    </div>
+                    <h5>{port.service.product}</h5>
                     {port.scripts.map(this.renderPortScript)}
                 </div>
+            </div>
+        );
+    }
+    renderScanWithPorts(scan: Scan) {
+        if (!scan.ports) {
+            return undefined;
+        }
+
+        return (
+            <div className="col-xs-12 col-sm-8 col-md-9">
+                {scan.ports.map(this.renderPort)}
             </div>
         );
     }
@@ -106,9 +112,7 @@ class HitItem extends React.PureComponent<HitItemProps> {
                     <h5 className="mt-2">Hostname</h5>
                     <span className="host-hostname">{scan.hostname}</span>
                 </div>
-                <div className="col-xs-12 col-sm-8 col-md-9">
-                    {scan.ports.map(this.renderPort)}
-                </div>
+                {this.renderScanWithPorts(scan)}
             </div>
         );
     }
@@ -124,6 +128,7 @@ class MyComponent extends SearchkitComponent<Props, never> {
                             <RefinementListFilter id="scan_reason" field="scan_reason" title="Scan Reason" />
                             <RefinementListFilter id="agent" field="agent" title="Agent" />
                             <RefinementListFilter id="is_up" field="is_up" title="Is Up" />
+                            <RefinementListFilter id="port_str" field="port_str" title="Open Port" />
                             <InputFilter id="hostname" title="Hostname" placeholder="example.com" searchOnChange={true} prefixQueryFields={["hostname"]} queryFields={["hostname"]} />
                             <DynamicRangeFilter id="port_count" field="port_count" title="Number of Ports" />
                         </SideBar>
