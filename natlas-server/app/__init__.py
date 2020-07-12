@@ -136,6 +136,7 @@ def create_app(config_class=config.Config, load_config=False):
         # The root url that your static assets are served from
         static_url="/static/",
     )
+    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0 # Dev only
 
     with app.app_context():
         load_natlas_config(app)

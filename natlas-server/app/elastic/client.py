@@ -112,21 +112,18 @@ class ElasticClient:
 
     def execute_count(self, **kwargs):
         """ Executes an arbitrary count."""
-        results = None
         with self._new_trace_span(operation="count", **kwargs) as span:
             results = self._execute_raw_query(self.es.count, doc_type="_doc", **kwargs)
             self._attach_shard_span_attrs(span, results)
-        if not results:
-            return 0
-        return results
+            if not results:
+                return 0
 
     def execute_delete_by_query(self, **kwargs):
         """ Executes an arbitrary delete_by_query."""
         with self._new_trace_span(operation="delete_by", **kwargs):
-            results = self._execute_raw_query(
+            return self._execute_raw_query(
                 self.es.delete_by_query, doc_type="_doc", **kwargs
             )
-            return results
 
     def execute_index(self, **kwargs):
         """ Executes an arbitrary index. """
@@ -141,7 +138,7 @@ class ElasticClient:
             return func(**kwargs)
         except elasticsearch.ConnectionError:
             self.status = False
-            raise elasticsearch.ConnectionError
+            raise
 
     # Tracing methods
     def _new_trace_span(self, operation, **kwargs):
