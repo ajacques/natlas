@@ -117,6 +117,7 @@ class ElasticClient:
             self._attach_shard_span_attrs(span, results)
             if not results:
                 return 0
+            return results
 
     def execute_delete_by_query(self, **kwargs):
         """ Executes an arbitrary delete_by_query."""
