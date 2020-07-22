@@ -3,8 +3,8 @@ import secrets
 import json
 from dotenv import load_dotenv
 
-# NAME, TYPE, DEFAULT
-defaultConfig = json.load(open("defaults/db_configs.json", "r"))
+with open("defaults/db_configs.json", "r") as f:
+    defaultConfig = json.load(f)
 
 
 def get_defaults():
@@ -65,6 +65,9 @@ class Config(object):
     MAIL_USERNAME = os.environ.get("MAIL_USERNAME", None)
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", None)
     MAIL_FROM = os.environ.get("MAIL_FROM", None)
+
+    # Scan Cycle option(s)
+    CONSISTENT_SCAN_CYCLE = casted_bool(os.environ.get("CONSISTENT_SCAN_CYCLE", False))
 
     # Allow version overrides for local development
     # Necessary to test versioned host data templates before release

@@ -1,4 +1,5 @@
 from app import create_app, db
+
 from tests.config import TestConfig
 
 import pytest

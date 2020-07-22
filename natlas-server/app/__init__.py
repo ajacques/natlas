@@ -38,6 +38,8 @@ def unauthorized():
     if not current_user.is_admin:
         flash(f"You must be an admin to access {request.path}.", "warning")
         return redirect(url_for("main.index"))
+    flash("Unauthorized", "warning")
+    return redirect(url_for("auth.login"))
 
 
 def load_natlas_config(app):
@@ -70,11 +72,8 @@ def load_natlas_services(app):
     current_services = NatlasServices.query.order_by(NatlasServices.id.desc()).first()
     if not current_services:
         # Let's populate server defaults
-        defaultServices = (
-            open(os.path.join(app.config["BASEDIR"], "defaults/natlas-services"))
-            .read()
-            .rstrip("\r\n")
-        )
+        with open(os.path.join(app.config["BASEDIR"], "defaults/natlas-services")) as f:
+            defaultServices = f.read().rstrip("\r\n")
         current_services = NatlasServices(services=defaultServices)
         db.session.add(current_services)
         db.session.commit()

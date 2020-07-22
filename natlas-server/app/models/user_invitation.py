@@ -1,16 +1,16 @@
 from app import db
-from app.util import utcnow_tz
 import secrets
 from datetime import timedelta, datetime
 from app.models.dict_serializable import DictSerializable
 from app.models.token_validation import validate_token
+from app.models import User
 
 
 class UserInvitation(db.Model, DictSerializable):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(128), unique=True)
     token = db.Column(db.String(32), unique=True, nullable=False)
-    creation_date = db.Column(db.DateTime, default=utcnow_tz)
+    creation_date = db.Column(db.DateTime, default=datetime.utcnow)
     expiration_date = db.Column(db.DateTime, nullable=False)
     accepted_date = db.Column(db.DateTime)
     is_expired = db.Column(db.Boolean, default=False)
@@ -24,6 +24,8 @@ class UserInvitation(db.Model, DictSerializable):
     # Build a new invitation
     @staticmethod
     def new_invite(email=None, is_admin=False):
+        if email and User.query.filter_by(email=email).first():
+            return False
         now = datetime.utcnow()
         expiration_date = now + timedelta(seconds=UserInvitation.expiration_duration)
         new_token = secrets.token_urlsafe(UserInvitation.token_length)
@@ -59,10 +61,11 @@ class UserInvitation(db.Model, DictSerializable):
             msg = f"Share this link: {invite_url}"
         return msg
 
-    # Get invite from database in (roughly) constant time
     @staticmethod
     def get_invite(url_token):
         record = UserInvitation.query.filter_by(token=url_token).first()
+        if not record:
+            return False
         return validate_token(record, url_token, record.token, record.validate_invite)
 
     def accept_invite(self):

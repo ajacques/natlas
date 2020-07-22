@@ -8,17 +8,25 @@ from flask import (
     send_from_directory,
     jsonify,
 )
+from flask_login import current_user
 from app import csrf
 
 from app.main import bp
 from app.main.pagination import build_pagination_urls, results_offset
 from app.auth.wrappers import is_authenticated
+from app.auth.forms import LoginForm, RegistrationForm
 
 
 @bp.route("/")
-@is_authenticated
 def index():
-    return redirect(url_for("main.browse"))
+    login_form = None
+    reg_form = None
+    if current_user.is_anonymous:
+        if current_app.config["LOGIN_REQUIRED"]:
+            login_form = LoginForm(prefix="login")
+        if current_app.config["REGISTER_ALLOWED"]:
+            reg_form = RegistrationForm(prefix="register")
+    return render_template("main/index.html", login_form=login_form, reg_form=reg_form)
 
 
 # Serve media files in case the front-end proxy doesn't do it
@@ -33,13 +41,15 @@ def send_media(filename):
 @bp.route("/browse")
 @is_authenticated
 def browse():
-    """ A simple browser that doesn't deal with queries at all """
+    """
+        A simple browser that doesn't deal with queries at all
+    """
     page = int(request.args.get("page", 1))
     includeHistory = request.args.get("includeHistory", False)
 
     results_per_page, search_offset = results_offset(page)
 
-    searchIndex = "nmap_history" if includeHistory else "nmap"
+    searchIndex = "history" if includeHistory else "latest"
 
     count, hostdata = current_app.elastic.search(
         results_per_page, search_offset, searchIndex=searchIndex
@@ -65,18 +75,12 @@ def browse():
     )
 
 
-@bp.route("/es_search/_search", methods=["POST"])
-@is_authenticated
-@csrf.exempt
-def es_search():
-    json = request.get_json()
-    return current_app.elastic.client.execute_search(index="nmap", body=json)
-
-
 @bp.route("/search")
 @is_authenticated
 def search():
-    """ Return search results for a given query """
+    """
+        Return search results for a given query
+    """
     query = request.args.get("query", "")
     if query == "":
         return redirect(url_for("main.browse"))
@@ -87,7 +91,7 @@ def search():
 
     results_per_page, search_offset = results_offset(page)
 
-    searchIndex = "nmap_history" if includeHistory else "nmap"
+    searchIndex = "history" if includeHistory else "latest"
 
     count, context = current_app.elastic.search(
         results_per_page, search_offset, query=query, searchIndex=searchIndex
@@ -159,5 +163,7 @@ def screenshots():
 @bp.route("/status")
 @is_authenticated
 def status():
-    """ Simple html representation of the status api"""
+    """
+        Simple html representation of the status api
+    """
     return render_template("main/status.html")
