@@ -4,7 +4,7 @@ import os
 import ipaddress
 
 from libnmap.parser import NmapParser, NmapParserException
-from sentry_sdk import capture_exception
+from sentry_sdk import add_breadcrumb, capture_exception, push_scope
 
 from natlas import screenshots
 from natlas import logging
@@ -67,6 +67,7 @@ def scan(target_data, config):
             timeout=int(agentConfig["scanTimeout"]),
         )  # nosec
     except subprocess.TimeoutExpired:
+        add_breadcrumb(level='warn', message='Nmap scan timed out')
         result.add_item("timed_out", True)
         logger.warning(f"TIMEOUT: Nmap against {target} ({scan_id})")
         return result
@@ -174,18 +175,23 @@ class ThreadScan(threading.Thread):
             )
 
     def run(self):
-        try:
-            while True:
+        while True:
+            with push_scope() as scope:
+                add_breadcrumb(category='scan_workflow', message='Fetching work', level='info')
                 work_item = self.get_work()
 
                 if not work_item:
                     break
 
-                self.execute_scan(work_item)
-                work_item.complete()
-        except Exception as e:
-            logger.warning(f"Failed to process work item: {e}")
-            capture_exception(e)
+                scope.set_extra("natlas_scan_id", work_item.target_data['scan_id'])
+                add_breadcrumb(category='scan_workflow', message='Starting scan for %s' % work_item.target_data['target'], level='info')
+                try:
+                    self.execute_scan(work_item)
+                    add_breadcrumb(category='scan_workflow', message='Scan completed. Reporting', level='info')
+                    work_item.complete()
+                except BaseException as e:
+                    event_id = capture_exception(e)
+                    logger.warning(f"Failed to process work item: {e}. Sentry event id: {event_id}")
 
     def get_work(self):
         # If we're in auto mode, the threads handle getting work from the server
